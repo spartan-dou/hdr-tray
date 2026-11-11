@@ -38,7 +38,7 @@ Résultat dans `dist/` : les exe et installeurs x64 et ARM64, et `version.txt`.
 ## Publier une version
 
 1. Changer `version` dans `Cargo.toml`.
-2. `git commit -am "vX.Y.Z" && git tag vX.Y.Z && git push --follow-tags`
+2. `git commit -am "vX.Y.Z" && git tag -a vX.Y.Z -m vX.Y.Z && git push --follow-tags`
 
 La GitHub Action compile et publie la release ; les appli installées se mettent à jour toutes seules.
 
