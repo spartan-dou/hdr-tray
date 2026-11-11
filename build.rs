@@ -62,7 +62,11 @@ fn main() {
 
     if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
         fs::write(out.join("app.rc"), "1 ICON \"hdr.ico\"\n").unwrap();
-        let ok = Command::new("x86_64-w64-mingw32-windres")
+        let windres = match env::var("CARGO_CFG_TARGET_ARCH").as_deref() {
+            Ok("aarch64") => "aarch64-w64-mingw32-windres",
+            _ => "x86_64-w64-mingw32-windres",
+        };
+        let ok = Command::new(windres)
             .current_dir(&out)
             .args(["-O", "coff", "-i", "app.rc", "-o", "res.o"])
             .status()

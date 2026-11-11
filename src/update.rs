@@ -1,5 +1,5 @@
 // Mise à jour automatique depuis les releases GitHub.
-// La release contient version.txt et HDRTray-Setup.exe ; l'installeur est lancé en silencieux (/S).
+// La release contient version.txt et un installeur par architecture ; il est lancé en silencieux (/S).
 use std::ffi::c_void;
 use std::path::Path;
 use std::ptr::null_mut;
@@ -68,7 +68,8 @@ pub fn check_and_install() -> Check {
         return Check::UpToDate;
     }
     let setup = dir.join(format!("HDRTray-Setup-{latest}.exe"));
-    if !download(&asset_url("HDRTray-Setup.exe"), &setup) {
+    let setup_name = if cfg!(target_arch = "aarch64") { "HDRTray-Setup-arm64.exe" } else { "HDRTray-Setup.exe" };
+    if !download(&asset_url(setup_name), &setup) {
         return Check::Failed;
     }
     // L'installeur ferme cette instance, remplace l'exe puis relance la nouvelle version

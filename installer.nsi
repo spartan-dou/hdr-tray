@@ -3,12 +3,20 @@
 Unicode true
 !include "MUI2.nsh"
 
+!include "x64.nsh"
+
 !ifndef VERSION
   !define VERSION "0.0.0"
 !endif
+!ifndef ARCH
+  !define ARCH "x64"
+!endif
+!ifndef SUFFIX
+  !define SUFFIX ""
+!endif
 
 Name "HDR Tray"
-OutFile "dist/HDRTray-Setup.exe"
+OutFile "dist/HDRTray-Setup${SUFFIX}.exe"
 InstallDir "$LOCALAPPDATA\Programs\HDRTray"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
@@ -36,10 +44,20 @@ SetCompressor /SOLID lzma
   Pop $0
 !macroend
 
+Function .onInit
+  ; La version x64 tourne aussi sur ARM64 (émulation) ; l'inverse est impossible
+  !if "${ARCH}" == "arm64"
+    ${IfNot} ${IsNativeARM64}
+      MessageBox MB_ICONSTOP "Cet installeur est pour Windows ARM64.$\nPrenez HDRTray-Setup.exe pour un PC Intel/AMD." /SD IDOK
+      Abort
+    ${EndIf}
+  !endif
+FunctionEnd
+
 Section
   !insertmacro StopRunning
   SetOutPath "$INSTDIR"
-  File "dist/HDRTray.exe"
+  File "/oname=HDRTray.exe" "dist/HDRTray${SUFFIX}.exe"
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
   CreateShortcut "$SMPROGRAMS\HDR Tray.lnk" "$INSTDIR\HDRTray.exe"
