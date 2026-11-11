@@ -1,0 +1,3 @@
+# llvm-mingw lie libunwind en DLL par défaut : crt-static l'intègre à l'exe
+[target.aarch64-pc-windows-gnullvm]
+rustflags = ["-C", "target-feature=+crt-static"]
