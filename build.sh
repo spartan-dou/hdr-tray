@@ -16,4 +16,5 @@ build() { # build <cible rust> <suffixe> <arch nsis>
 build x86_64-pc-windows-gnu "" x64
 build aarch64-pc-windows-gnullvm "-arm64" arm64
 echo "$VERSION" > dist/version.txt
+(cd dist && sha256sum HDRTray-Setup.exe HDRTray-Setup-arm64.exe HDRTray.exe HDRTray-arm64.exe > SHA256SUMS)
 ls -la dist

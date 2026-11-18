@@ -61,7 +61,9 @@ Section
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
   CreateShortcut "$SMPROGRAMS\HDR Tray.lnk" "$INSTDIR\HDRTray.exe"
-  WriteRegStr HKCU "${RUN_KEY}" "HDRTray" '"$INSTDIR\HDRTray.exe"'
+  ; Mise à jour silencieuse : ne pas recréer le démarrage auto que l'utilisateur a pu désactiver
+  IfSilent +2
+    WriteRegStr HKCU "${RUN_KEY}" "HDRTray" '"$INSTDIR\HDRTray.exe"'
 
   WriteRegStr HKCU "${UNINST_KEY}" "DisplayName" "HDR Tray"
   WriteRegStr HKCU "${UNINST_KEY}" "DisplayVersion" "${VERSION}"

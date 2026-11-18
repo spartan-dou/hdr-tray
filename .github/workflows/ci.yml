@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer la cible Windows
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64
+          rustup target add x86_64-pc-windows-gnu
+          rustup component add clippy rustfmt
+      - run: cargo fmt --check
+      - run: cargo clippy --target x86_64-pc-windows-gnu -- -D warnings
+      - name: Tests (fonctions pures, sans lien Windows)
+        run: cargo test --target x86_64-pc-windows-gnu --no-run
