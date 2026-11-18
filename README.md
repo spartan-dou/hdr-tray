@@ -4,9 +4,16 @@ Petite icône pour la zone de notification de Windows 11 qui montre si le HDR es
 
 - **Pastille orange « HDR »** : HDR activé. **Contour gris** : désactivé.
 - **Clic gauche** : active ou désactive le HDR sur tous les écrans compatibles.
-- **Clic droit** : menu (basculer, lancement au démarrage, mise à jour, quitter).
+- **Clic droit** : menu (basculer, écrans, lancement au démarrage, HDR automatique, mises à jour, quitter).
+- **Bascule par écran** : avec plusieurs écrans HDR, le sous-menu « Écrans » (une coche par écran) bascule chacun séparément.
+- **HDR automatique par application** : menu « HDR automatique par application » → « Modifier la liste » ouvre `%APPDATA%\HDRTray\apps.txt`
+  (un nom d'exe par ligne, `#` pour commenter). Le HDR s'active tant qu'une de ces applications tourne, puis revient à son état initial.
+- **Mises à jour maîtrisées** : menu « Mises à jour » → installer automatiquement (défaut), prévenir seulement (bulle de notification puis
+  « Installer la version X »), ou désactivées. Une bulle confirme la mise à jour au redémarrage. L'installeur est vérifié par SHA-256 (`SHA256SUMS`).
+  La version portable ne s'installe jamais toute seule.
+- **Français / anglais** : suit la langue de Windows (application et installeur).
+- **Icône adaptée au thème** : le gris de l'état désactivé s'assombrit sur une barre des tâches claire.
 - Suit aussi les changements faits ailleurs (`Win + Alt + B`, Paramètres, jeux).
-- Mise à jour automatique depuis les releases GitHub (au démarrage puis toutes les 6 h).
 - Écrit en Rust, sans dépendance : un exe de quelques centaines de Ko, 0 % de CPU, environ 10 Mo de RAM.
 
 ## Installation

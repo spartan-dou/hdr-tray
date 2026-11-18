@@ -24,7 +24,7 @@ fn ico(sizes: &[u32]) -> Vec<u8> {
                     d.extend([b, g, r, a]);
                 }
             }
-            d.extend(vec![0u8; ((s as usize + 31) / 32 * 4) * s as usize]);
+            d.extend(vec![0u8; ((s as usize).div_ceil(32) * 4) * s as usize]);
             (s, d)
         })
         .collect();
@@ -66,12 +66,7 @@ fn main() {
             Ok("aarch64") => "aarch64-w64-mingw32-windres",
             _ => "x86_64-w64-mingw32-windres",
         };
-        let ok = Command::new(windres)
-            .current_dir(&out)
-            .args(["-O", "coff", "-i", "app.rc", "-o", "res.o"])
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false);
+        let ok = Command::new(windres).current_dir(&out).args(["-O", "coff", "-i", "app.rc", "-o", "res.o"]).status().map(|s| s.success()).unwrap_or(false);
         assert!(ok, "windres a échoué");
         println!("cargo:rustc-link-arg-bins={}", out.join("res.o").display());
     }
