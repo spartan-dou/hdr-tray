@@ -27,13 +27,20 @@ SetCompressor /SOLID lzma
 !define MUI_ICON "dist/hdr.ico"
 !define MUI_UNICON "dist/hdr.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\HDRTray.exe"
-!define MUI_FINISHPAGE_RUN_TEXT "Lancer HDR Tray maintenant"
+!define MUI_FINISHPAGE_RUN_TEXT "$(RunText)"
 
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "French"
+!insertmacro MUI_LANGUAGE "English"
+
+; Textes localisés : le français est la langue par défaut, l'anglais suit la langue de Windows
+LangString RunText ${LANG_FRENCH} "Lancer HDR Tray maintenant"
+LangString RunText ${LANG_ENGLISH} "Run HDR Tray now"
+LangString ArmOnly ${LANG_FRENCH} "Cet installeur est pour Windows ARM64.$\nPrenez HDRTray-Setup.exe pour un PC Intel/AMD."
+LangString ArmOnly ${LANG_ENGLISH} "This installer is for Windows ARM64.$\nUse HDRTray-Setup.exe for an Intel/AMD PC."
 
 !macro StopRunning
   IfFileExists "$INSTDIR\HDRTray.exe" 0 +2
@@ -48,7 +55,7 @@ Function .onInit
   ; La version x64 tourne aussi sur ARM64 (émulation) ; l'inverse est impossible
   !if "${ARCH}" == "arm64"
     ${IfNot} ${IsNativeARM64}
-      MessageBox MB_ICONSTOP "Cet installeur est pour Windows ARM64.$\nPrenez HDRTray-Setup.exe pour un PC Intel/AMD." /SD IDOK
+      MessageBox MB_ICONSTOP "$(ArmOnly)" /SD IDOK
       Abort
     ${EndIf}
   !endif
@@ -87,4 +94,5 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\HDR Tray.lnk"
   DeleteRegValue HKCU "${RUN_KEY}" "HDRTray"
   DeleteRegKey HKCU "${UNINST_KEY}"
+  DeleteRegKey HKCU "Software\HDRTray"
 SectionEnd

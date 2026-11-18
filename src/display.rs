@@ -96,11 +96,43 @@ const GET_ADVANCED_COLOR_INFO_2: u32 = 15;
 const SET_HDR_STATE: u32 = 16;
 const COLOR_MODE_HDR: u32 = 2;
 
+#[repr(C)]
+struct TargetName {
+    h: Header,
+    flags: u32,
+    output_tech: u32,
+    edid_manufacturer: u16,
+    edid_product: u16,
+    connector: u32,
+    friendly: [u16; 64],
+    path: [u16; 128],
+}
+
+const GET_TARGET_NAME: u32 = 2;
+
 struct Target {
     adapter: Luid,
     id: u32,
     enabled: bool,
     new_api: bool,
+}
+
+/// Écran compatible HDR, tel que présenté dans le menu.
+pub struct Screen {
+    /// Identifiant stable pendant la session (adaptateur + cible).
+    pub key: (u32, i32, u32),
+    pub name: String,
+    pub enabled: bool,
+}
+
+unsafe fn friendly_name(adapter: Luid, id: u32) -> String {
+    let mut n: TargetName = std::mem::zeroed();
+    n.h = header::<TargetName>(GET_TARGET_NAME, adapter, id);
+    if DisplayConfigGetDeviceInfo(&mut n as *mut TargetName as *mut Header) != 0 {
+        return String::new();
+    }
+    let len = n.friendly.iter().position(|&c| c == 0).unwrap_or(n.friendly.len());
+    String::from_utf16_lossy(&n.friendly[..len])
 }
 
 fn header<T>(kind: u32, adapter: Luid, id: u32) -> Header {
@@ -112,13 +144,13 @@ unsafe fn probe(adapter: Luid, id: u32) -> Option<Target> {
     let mut c2 = ColorInfo2 { h: header::<ColorInfo2>(GET_ADVANCED_COLOR_INFO_2, adapter, id), value: 0, encoding: 0, bpc: 0, mode: 0 };
     if DisplayConfigGetDeviceInfo(&mut c2 as *mut ColorInfo2 as *mut Header) == 0 {
         let supported = c2.value & (1 << 4) != 0;
-        return supported.then(|| Target { adapter, id, enabled: c2.mode == COLOR_MODE_HDR, new_api: true });
+        return supported.then_some(Target { adapter, id, enabled: c2.mode == COLOR_MODE_HDR, new_api: true });
     }
     let mut c = ColorInfo { h: header::<ColorInfo>(GET_ADVANCED_COLOR_INFO, adapter, id), value: 0, encoding: 0, bpc: 0 };
     if DisplayConfigGetDeviceInfo(&mut c as *mut ColorInfo as *mut Header) != 0 {
         return None;
     }
-    (c.value & 1 != 0).then(|| Target { adapter, id, enabled: c.value & 2 != 0, new_api: false })
+    (c.value & 1 != 0).then_some(Target { adapter, id, enabled: c.value & 2 != 0, new_api: false })
 }
 
 fn targets() -> Vec<Target> {
@@ -156,12 +188,51 @@ pub fn state() -> i32 {
     }
 }
 
+fn set_target(d: &Target, enable: bool) -> bool {
+    let kind = if d.new_api { SET_HDR_STATE } else { SET_ADVANCED_COLOR_STATE };
+    let mut s = SetState { h: header::<SetState>(kind, d.adapter, d.id), value: enable as u32 };
+    unsafe { DisplayConfigSetDeviceInfo(&mut s as *mut SetState as *mut Header) == 0 }
+}
+
+/// Active ou désactive le HDR sur tous les écrans compatibles.
+pub fn set_all(enable: bool) {
+    for d in &targets() {
+        set_target(d, enable);
+    }
+}
+
 pub fn toggle() {
-    let t = targets();
-    let enable = !t.iter().any(|t| t.enabled);
-    for d in &t {
-        let kind = if d.new_api { SET_HDR_STATE } else { SET_ADVANCED_COLOR_STATE };
-        let mut s = SetState { h: header::<SetState>(kind, d.adapter, d.id), value: enable as u32 };
-        unsafe { DisplayConfigSetDeviceInfo(&mut s as *mut SetState as *mut Header) };
+    let enable = !targets().iter().any(|t| t.enabled);
+    set_all(enable);
+}
+
+/// Écrans compatibles HDR, avec leur nom d'affichage.
+pub fn screens() -> Vec<Screen> {
+    targets()
+        .into_iter()
+        .enumerate()
+        .map(|(i, t)| {
+            let name = unsafe { friendly_name(t.adapter, t.id) };
+            let name = if name.is_empty() { format!("Display {}", i + 1) } else { name };
+            Screen { key: (t.adapter.low, t.adapter.high, t.id), name, enabled: t.enabled }
+        })
+        .collect()
+}
+
+/// Bascule un seul écran, identifié par `Screen::key`.
+pub fn toggle_screen(key: (u32, i32, u32)) {
+    if let Some(d) = targets().iter().find(|t| (t.adapter.low, t.adapter.high, t.id) == key) {
+        set_target(d, !d.enabled);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ffi_struct_sizes() {
+        assert_eq!(size_of::<Header>(), 20);
+        assert_eq!(size_of::<TargetName>(), 20 + 16 + 128 + 256);
     }
 }
