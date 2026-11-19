@@ -25,6 +25,20 @@ jobs:
           docker build -t hdrtray-build .
           docker run --rm -v "$PWD":/src hdrtray-build
 
+      - name: Versions portables (zip) et empreintes
+        run: |
+          sudo chown -R "$USER" dist # créé par root dans le conteneur
+          for pair in "HDRTray.exe:x64" "HDRTray-arm64.exe:arm64"; do
+            exe=${pair%%:*}; arch=${pair##*:}
+            tmp=$(mktemp -d)
+            cp "dist/$exe" "$tmp/HDRTray.exe"
+            cp LICENSE "$tmp/"
+            (cd "$tmp" && zip -q "$OLDPWD/dist/HDRTray-portable-$arch.zip" HDRTray.exe LICENSE)
+          done
+          # SHA256SUMS est consulté par l'appli pour vérifier l'installeur : il couvre tous les fichiers
+          (cd dist && sha256sum HDRTray-Setup.exe HDRTray-Setup-arm64.exe HDRTray.exe HDRTray-arm64.exe \
+            HDRTray-portable-x64.zip HDRTray-portable-arm64.zip > SHA256SUMS && cat SHA256SUMS)
+
       - uses: actions/upload-artifact@v4
         with:
           name: dist
@@ -35,11 +49,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # seul ce job peut créer la release
+      id-token: write # attestation de provenance
+      attestations: write
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist
+
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/*.exe
+            dist/*.zip
 
       - name: Publier la release
         env:
@@ -47,5 +69,6 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
             dist/HDRTray-Setup.exe dist/HDRTray-Setup-arm64.exe \
-            dist/HDRTray.exe dist/HDRTray-arm64.exe dist/version.txt dist/SHA256SUMS \
+            dist/HDRTray.exe dist/HDRTray-arm64.exe dist/HDRTray-portable-x64.zip dist/HDRTray-portable-arm64.zip \
+            dist/version.txt dist/SHA256SUMS \
             --title "HDR Tray $GITHUB_REF_NAME" --generate-notes

@@ -252,7 +252,7 @@ unsafe fn make_icon(state: i32) -> Handle {
         return null_mut();
     }
     let dst = std::slice::from_raw_parts_mut(bits as *mut u8, pixels.len() * 4);
-    for (d, [r, g, b, a]) in dst.chunks_exact_mut(4).zip(pixels) {
+    for (d, [r, g, b, a]) in dst.as_chunks_mut::<4>().0.iter_mut().zip(pixels) {
         d.copy_from_slice(&[b, g, r, a]);
     }
     let mask_bits = vec![0u8; ((size as usize).div_ceil(16) * 2) * size as usize];
