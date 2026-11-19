@@ -404,6 +404,7 @@ unsafe fn show_menu(hwnd: Handle) {
     // HDR automatique par application
     let auto = apps_sub();
     AppendMenuW(menu, MF_POPUP, auto as usize, wide(tr("HDR automatique par application", "Automatic HDR per app")).as_ptr());
+    AppendMenuW(menu, MF_STRING, 6, wide(tr("Paramètres HDR de Windows…", "Windows HDR settings…")).as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, null());
 
     // Mises à jour
@@ -442,6 +443,9 @@ unsafe fn show_menu(hwnd: Handle) {
         }
         4 => update::check_manually(),
         5 => update::install_now(),
+        6 => {
+            ShellExecuteW(null_mut(), wide("open").as_ptr(), wide("ms-settings:display-advancedcolor").as_ptr(), null(), null(), 1);
+        }
         10 => settings::set_dword("UpdateMode", UpdateMode::Auto.to_u32()),
         11 => settings::set_dword("UpdateMode", UpdateMode::Notify.to_u32()),
         12 => settings::set_dword("UpdateMode", UpdateMode::Off.to_u32()),
