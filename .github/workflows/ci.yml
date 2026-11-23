@@ -23,15 +23,20 @@ jobs:
       - name: Tests (fonctions pures, sans lien Windows)
         run: cargo test --target x86_64-pc-windows-gnu --no-run
 
-  # Valide le paquet MSI (WiX ne fonctionne que sous Windows)
+  # Valide le paquet MSI (WiX ne fonctionne que sous Windows). Le build.rs écrit dist/hdr.ico avant
+  # d'appeler windres (absent ici : l'échec de la compilation est ignoré) ; l'exe est un exemplaire factice.
   msi:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compiler et construire le MSI
+      - name: Construire le MSI
         shell: pwsh
         run: |
-          cargo build --release
+          cargo build --release 2>&1 | Out-Null
+          if (-not (Test-Path dist/hdr.ico)) { throw "dist/hdr.ico absent" }
+          Set-Content dist/HDRTray.exe 'stub'
           dotnet tool install --global wix --version 5.0.2
-          wix build packaging/hdrtray.wxs -arch x64 -d Version=0.0.0 -d Exe=target/release/hdrtray.exe -d Icon=dist/hdr.ico -o HDRTray-x64.msi
+          wix build packaging/hdrtray.wxs -arch x64 -d Version=0.0.0 -d Exe=dist/HDRTray.exe -d Icon=dist/hdr.ico -o HDRTray-x64.msi
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          wix build packaging/hdrtray.wxs -arch arm64 -d Version=0.0.0 -d Exe=dist/HDRTray.exe -d Icon=dist/hdr.ico -o HDRTray-arm64.msi
           if ($LASTEXITCODE -ne 0) { exit 1 }
