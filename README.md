@@ -8,6 +8,8 @@ Petite icône pour la zone de notification de Windows 11 qui montre si le HDR es
 - **Bascule par écran** : avec plusieurs écrans HDR, le sous-menu « Écrans » (une coche par écran) bascule chacun séparément.
 - **HDR automatique par application** : menu « HDR automatique par application » → « Modifier la liste » ouvre `%APPDATA%\HDRTray\apps.txt`
   (un nom d'exe par ligne, `#` pour commenter). Le HDR s'active tant qu'une de ces applications tourne, puis revient à son état initial.
+- **HDR selon l'alimentation** : l'entrée « HDR sur secteur, désactivé sur batterie » active le HDR au branchement et le coupe au passage sur batterie
+  (appliqué au changement de source, le clic manuel reste possible ensuite). Une application de la liste ci-dessus garde le HDR actif même sur batterie.
 - **Mises à jour maîtrisées** : menu « Mises à jour » → installer automatiquement (défaut), prévenir seulement (bulle de notification puis
   « Installer la version X »), ou désactivées. Une bulle confirme la mise à jour au redémarrage. L'installeur est vérifié par SHA-256 (`SHA256SUMS`).
   La version portable ne s'installe jamais toute seule.

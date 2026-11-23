@@ -6,6 +6,7 @@ mod apps;
 mod display;
 mod i18n;
 mod icon;
+mod power;
 mod settings;
 mod update;
 
@@ -15,7 +16,7 @@ use settings::UpdateMode;
 use std::ffi::c_void;
 use std::mem::{size_of, zeroed};
 use std::ptr::{null, null_mut};
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicPtr, AtomicU32, Ordering::Relaxed};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicPtr, AtomicU32, AtomicU8, Ordering::Relaxed};
 
 type Handle = *mut c_void;
 type WndProc = unsafe extern "system" fn(Handle, u32, usize, isize) -> isize;
@@ -218,6 +219,8 @@ static LIGHT: AtomicBool = AtomicBool::new(false);
 static UPDATED_NOTICE: AtomicBool = AtomicBool::new(false);
 static AUTO_ACTIVE: AtomicBool = AtomicBool::new(false);
 static AUTO_RESTORE_OFF: AtomicBool = AtomicBool::new(false);
+// Dernière source vue par le mode « selon l'alimentation » : 0 inconnue, 1 batterie, 2 secteur
+static LAST_POWER: AtomicU8 = AtomicU8::new(0);
 static TASKBAR_CREATED: AtomicU32 = AtomicU32::new(0);
 
 fn wide(s: &str) -> Vec<u16> {
@@ -339,11 +342,35 @@ unsafe fn auto_apps() {
         }
     } else if !running && active {
         AUTO_ACTIVE.store(false, Relaxed);
+        LAST_POWER.store(0, Relaxed); // réapplique la règle d'alimentation
         if AUTO_RESTORE_OFF.swap(false, Relaxed) && display::state() == 1 {
             display::set_all(false);
             Sleep(250);
             refresh(false);
         }
+    }
+}
+
+/// HDR selon l'alimentation : activé sur secteur, désactivé sur batterie.
+/// Appliqué au changement de source (pas en continu), donc le clic manuel reste libre entre deux changements.
+/// Une application de la liste qui tourne garde le HDR activé même sur batterie.
+unsafe fn auto_power() {
+    if settings::get_dword("AutoPower") != Some(1) {
+        LAST_POWER.store(0, Relaxed);
+        return;
+    }
+    let Some(ac) = power::on_ac() else { return };
+    let now = if ac { 2 } else { 1 };
+    if LAST_POWER.swap(now, Relaxed) == now {
+        return;
+    }
+    if !ac && AUTO_ACTIVE.load(Relaxed) {
+        return;
+    }
+    if (display::state() == 1) != ac {
+        display::set_all(ac);
+        Sleep(250);
+        refresh(false);
     }
 }
 
@@ -405,6 +432,8 @@ unsafe fn show_menu(hwnd: Handle) {
     let auto = apps_sub();
     AppendMenuW(menu, MF_POPUP, auto as usize, wide(tr("HDR automatique par application", "Automatic HDR per app")).as_ptr());
     AppendMenuW(menu, MF_STRING, 6, wide(tr("Paramètres HDR de Windows…", "Windows HDR settings…")).as_ptr());
+    let power_flags = MF_STRING | if settings::get_dword("AutoPower") == Some(1) { MF_CHECKED } else { 0 };
+    AppendMenuW(menu, power_flags, 22, wide(tr("HDR sur secteur, désactivé sur batterie", "HDR on AC power, off on battery")).as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, null());
 
     // Mises à jour
@@ -451,6 +480,7 @@ unsafe fn show_menu(hwnd: Handle) {
         12 => settings::set_dword("UpdateMode", UpdateMode::Off.to_u32()),
         20 => settings::set_dword("AutoApps", (settings::get_dword("AutoApps") != Some(1)) as u32),
         21 => open_apps_list(),
+        22 => settings::set_dword("AutoPower", (settings::get_dword("AutoPower") != Some(1)) as u32),
         c if c >= SCREEN_CMD => {
             if let Some(sc) = screens.get(c - SCREEN_CMD) {
                 display::toggle_screen(sc.key);
@@ -489,6 +519,7 @@ unsafe extern "system" fn wndproc(hwnd: Handle, msg: u32, wp: usize, lp: isize) 
             refresh(false);
             if msg == WM_TIMER {
                 auto_apps();
+                auto_power();
             }
             0
         }
