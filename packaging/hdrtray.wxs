@@ -1,0 +1,36 @@
+<!--
+  Paquet MSI de HDR Tray, compilé par la CI avec WiX Toolset (libre) :
+    wix build packaging/hdrtray.wxs -arch x64 -d Version=1.4.0 -d Arch=x64 -d Exe=dist/HDRTray.exe -d Icon=dist/hdr.ico -o HDRTray-x64.msi
+
+  Installation pour tout le PC dans Program Files (droits administrateur), raccourci dans le menu
+  Démarrer, désinstallation depuis Paramètres > Applications. C'est le format que les services
+  informatiques savent déployer (Intune, GPO…). Une copie installée par MSI n'est pas dans
+  %LOCALAPPDATA% : l'appli la traite comme non mise à jour automatiquement et se contente de prévenir.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="HDR Tray"
+           Manufacturer="spartan-dou"
+           Version="$(var.Version)"
+           UpgradeCode="183d6397-94de-41b3-8b2c-151fc7ac2175"
+           Scope="perMachine">
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of HDR Tray is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="hdr.ico" SourceFile="$(var.Icon)" />
+    <Property Id="ARPPRODUCTICON" Value="hdr.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/spartan-dou/hdr-tray" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="HDRTray">
+        <Component Id="App">
+          <File Id="AppExe" Source="$(var.Exe)" Name="HDRTray.exe" KeyPath="yes">
+            <Shortcut Id="StartMenu" Name="HDR Tray" Directory="ProgramMenuFolder"
+                      Description="HDR status icon and toggle"
+                      WorkingDirectory="INSTALLFOLDER" Icon="hdr.ico" Advertise="yes" />
+          </File>
+        </Component>
+      </Directory>
+    </StandardDirectory>
+  </Package>
+</Wix>

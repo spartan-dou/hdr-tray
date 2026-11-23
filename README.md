@@ -24,6 +24,7 @@ Télécharger l'installeur depuis la [dernière release](https://github.com/spar
 
 - **`HDRTray-Setup.exe`** : PC Intel / AMD (x64)
 - **`HDRTray-Setup-arm64.exe`** : PC ARM64 (Snapdragon…)
+- **`HDRTray-x64.msi`** / **`HDRTray-arm64.msi`** : paquets MSI pour tout le PC (Program Files, droits administrateur), pour un déploiement par GPO ou Intune. Une copie installée par MSI ne se met pas à jour toute seule : elle prévient, et on installe le nouveau MSI.
 
 Les `HDRTray-portable-x64.zip` / `HDRTray-portable-arm64.zip` (ou les `HDRTray.exe` / `HDRTray-arm64.exe` seuls) sont les versions portables (sans installation). `SHA256SUMS` permet de vérifier un téléchargement, et chaque fichier a une attestation de provenance (`gh attestation verify`).
 Pas besoin des droits administrateur. Installation dans `%LOCALAPPDATA%\Programs\HDRTray`, désinstallation depuis « Applications installées ».

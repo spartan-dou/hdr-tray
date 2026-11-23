@@ -44,8 +44,34 @@ jobs:
           name: dist
           path: dist/
 
-  publish:
+  # WiX ne fonctionne que sous Windows
+  msi:
     needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Paquets MSI (x64 et ARM64)
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"(.+)"').Matches[0].Groups[1].Value
+          dotnet tool install --global wix --version 5.0.2
+          New-Item -ItemType Directory -Force msi | Out-Null
+          foreach ($p in @(@('x64', 'HDRTray.exe'), @('arm64', 'HDRTray-arm64.exe'))) {
+            wix build packaging/hdrtray.wxs -arch $p[0] -d Version=$version -d Exe=dist/$($p[1]) -d Icon=dist/hdr.ico -o msi/HDRTray-$($p[0]).msi
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: msi
+          path: msi/
+          if-no-files-found: error
+
+  publish:
+    needs: [build, msi]
     runs-on: ubuntu-latest
     permissions:
       contents: write # seul ce job peut créer la release
@@ -57,11 +83,20 @@ jobs:
           name: dist
           path: dist
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: msi
+          path: dist
+
+      - name: Empreintes des MSI
+        run: cd dist && sha256sum *.msi >> SHA256SUMS && cat SHA256SUMS
+
       - uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
             dist/*.exe
             dist/*.zip
+            dist/*.msi
 
       - name: Publier la release
         env:
@@ -70,5 +105,6 @@ jobs:
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
             dist/HDRTray-Setup.exe dist/HDRTray-Setup-arm64.exe \
             dist/HDRTray.exe dist/HDRTray-arm64.exe dist/HDRTray-portable-x64.zip dist/HDRTray-portable-arm64.zip \
+            dist/HDRTray-x64.msi dist/HDRTray-arm64.msi \
             dist/version.txt dist/SHA256SUMS \
             --title "HDR Tray $GITHUB_REF_NAME" --generate-notes

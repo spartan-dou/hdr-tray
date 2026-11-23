@@ -22,3 +22,16 @@ jobs:
       - run: cargo clippy --target x86_64-pc-windows-gnu -- -D warnings
       - name: Tests (fonctions pures, sans lien Windows)
         run: cargo test --target x86_64-pc-windows-gnu --no-run
+
+  # Valide le paquet MSI (WiX ne fonctionne que sous Windows)
+  msi:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compiler et construire le MSI
+        shell: pwsh
+        run: |
+          cargo build --release
+          dotnet tool install --global wix --version 5.0.2
+          wix build packaging/hdrtray.wxs -arch x64 -d Version=0.0.0 -d Exe=target/release/hdrtray.exe -d Icon=dist/hdr.ico -o HDRTray-x64.msi
+          if ($LASTEXITCODE -ne 0) { exit 1 }

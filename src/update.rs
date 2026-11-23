@@ -283,7 +283,7 @@ pub fn check_manually() {
                 let t = format!(
                     "{} {v} {}\nhttps://github.com/{REPO}/releases/latest",
                     tr("La version", "Version"),
-                    tr("est disponible.\nCette copie est portable : téléchargez-la sur", "is available.\nThis copy is portable: download it from")
+                    tr("est disponible.\nCette copie ne se met pas à jour toute seule (portable ou MSI) : téléchargez-la sur", "is available.\nThis copy does not update itself (portable or MSI): download it from")
                 );
                 message(&t, MB_ICONINFORMATION);
             }
